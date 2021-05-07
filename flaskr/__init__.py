@@ -1,44 +1,23 @@
 import os
-
+from flask_socketio import SocketIO, emit, disconnect
 from flask import Flask
+from flask_cors import CORS, cross_origin
 
 
-def create_app(test_config=None):
-    # create and configure the app
-    app = Flask(__name__, instance_relative_config=True)
-    app.config.from_mapping(
-        SECRET_KEY='dev',
-        DATABASE=os.path.join(app.instance_path, 'flaskr.sqlite'),
-    )
+app = Flask(__name__)
+app.config['SECRET_KEY']='dev'
 
-    if test_config is None:
-        # load the instance config, if it exists, when not testing
-        app.config.from_pyfile('config.py', silent=True)
-    else:
-        # load the test config if passed in
-        app.config.from_mapping(test_config)
+my_socket = SocketIO(app, async_mode=None, cors_allowed_origins="*")
 
-    # ensure the instance folder exists
-    try:
-        os.makedirs(app.instance_path)
-    except OSError:
-        pass
-
-    # a simple page that says hello
-    @app.route('/hello')
-    def hello():
-        return 'Hello, World!'
-
+@my_socket.on('rotation')
+def hello(data):
+    print('rotation: ' + str(data['msg']))
 	
-    from . import db
-    db.init_app(app)
-    
-    from . import auth
-    app.register_blueprint(auth.bp)
-    
-    from . import blog
-    app.register_blueprint(blog.bp)
-    
-    app.add_url_rule('/', endpoint='index')
-    
-    return app
+
+@my_socket.on('on_connect')
+def handle_message(data):
+    print('received message: ' + str(data['msg']))
+
+if __name__=='__main__':
+    my_socket.run(app, debug=True)
+
